@@ -1,4 +1,7 @@
 
+using Microsoft.EntityFrameworkCore;
+using bank.app.infrastructure.Data;
+
 namespace bank.app
 {
     public class Program
@@ -8,11 +11,13 @@ namespace bank.app
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            // ? DbContext’i do?ru ekleme
+            builder.Services.AddDbContext<BankDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             var app = builder.Build();
 
@@ -24,12 +29,8 @@ namespace bank.app
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
-
             app.MapControllers();
-
             app.Run();
         }
     }

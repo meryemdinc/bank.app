@@ -1,26 +1,19 @@
 ﻿using bank.app.domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace bank.app.infrastructure.Data
 {
     public class BankDbContext : DbContext
     {
-        //Bu yapı, dışarıdan (örneğin Program.cs dosyasından) bu context'in nasıl çalışacağını belirlemek için kullanılır.
-        //   Bağlantı ayarları(ConnectionString) burada verilir.
-
+        // DbContext, uygulamanın veri tabanı ile iletişimini sağlar.
+        // Bağlantı ayarları Program.cs üzerinden verilir.
 
         public BankDbContext(DbContextOptions<BankDbContext> options)
             : base(options)
         {
         }
 
-
+        // DbSet'ler tablo karşılıklarıdır
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Card> Cards { get; set; }
@@ -29,11 +22,12 @@ namespace bank.app.infrastructure.Data
         public DbSet<CardType> CardTypes { get; set; }
         public DbSet<TransactionType> TransactionTypes { get; set; }
 
-        //Veritabanındaki ilişkileri, benzersiz alanları (unique) ve örnek verileri burada tanımlarsın.
+        // Veritabanı yapılandırmaları burada tanımlanır
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+            // Unique indexler
             modelBuilder.Entity<Customer>()
                 .HasIndex(c => c.NationalId)
                 .IsUnique();
@@ -50,13 +44,14 @@ namespace bank.app.infrastructure.Data
                 .HasIndex(c => c.CardNumber)
                 .IsUnique();
 
+            // İlişkiler
             modelBuilder.Entity<Customer>()
                 .HasMany(c => c.Accounts)
                 .WithOne(a => a.Customer)
                 .HasForeignKey(a => a.CustomerId);
-            //bir hesap bir müşteriye ait, bir müşteri birden fazla hesaba sahip olabilir
+
             modelBuilder.Entity<Account>()
-                .HasMany(x => x.Cards)
+                .HasMany(a => a.Cards)
                 .WithOne(c => c.Account)
                 .HasForeignKey(c => c.AccountId);
 
@@ -77,17 +72,26 @@ namespace bank.app.infrastructure.Data
                 .WithMany(tt => tt.Transactions)
                 .HasForeignKey(t => t.TransactionTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
-            //"Bir hesabı silmeye çalışırsan ama o hesaba bağlı işlemler varsa, silinemez."
+
             modelBuilder.Entity<Card>()
                 .HasOne(c => c.CardType)
                 .WithMany(ct => ct.Cards)
                 .HasForeignKey(c => c.CardTypeId);
 
+            // Örnek veri
             modelBuilder.Entity<CardType>().HasData(
                 new CardType { Id = 1, Name = "Bank Card" },
                 new CardType { Id = 2, Name = "Credit Card" }
             );
 
+            // Decimal alanlar için precision ayarı (RiskLimit ve Amount uyarılarını önler)
+            modelBuilder.Entity<Customer>()
+                .Property(c => c.RiskLimit)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Transaction>()
+                .Property(t => t.Amount)
+                .HasPrecision(18, 2);
         }
     }
 }
